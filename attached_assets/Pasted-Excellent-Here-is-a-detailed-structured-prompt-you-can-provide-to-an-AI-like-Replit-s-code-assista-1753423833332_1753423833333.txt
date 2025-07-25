@@ -1,0 +1,120 @@
+Excellent. Here is a detailed, structured prompt you can provide to an AI like Replit's code assistant to build the "Your GitHub Story" app.
+
+Replit Prompt: Build "Your GitHub Story" Web App
+Project Goal:
+Create a web application named "Your GitHub Story." The app's purpose is to take a GitHub username, fetch the user's public activity data via the GitHub API, and display it as a beautiful, shareable, single-page infographic.
+
+Technology Stack:
+
+Framework: React with Vite
+
+Language: JavaScript
+
+Styling: Tailwind CSS for a modern, utility-first design.
+
+Data Fetching: Use the axios library.
+
+Charts: Use react-chartjs-2 and chart.js.
+
+Core User Flow:
+
+The user lands on a page with a single text input asking for their GitHub username and a "Generate Story" button.
+
+When the button is clicked, the app enters a "loading" state.
+
+The app fetches data from the GitHub API for the provided username.
+
+Once the data is fetched and processed, the loading state ends, and the app displays the infographic.
+
+The infographic should be a single column of visually appealing "cards" or "widgets".
+
+Component Structure:
+Please create the following React components in a /src/components/ directory:
+
+App.jsx:
+
+The main parent component.
+
+Manages state for username, userData, loading, and error.
+
+Contains the main layout, including a header.
+
+Renders UsernameForm and conditionally renders StoryDisplay or a loading/error message.
+
+UsernameForm.jsx:
+
+A simple form with one input for the username and a submit button.
+
+Passes the submitted username back up to App.jsx.
+
+StoryDisplay.jsx:
+
+Receives the processed userData as a prop.
+
+Acts as the container for all the infographic cards.
+
+Renders the components listed below, passing the relevant data to each.
+
+StatCard.jsx:
+
+A reusable component to display a single metric.
+
+Props: title (e.g., "Total Repos") and value (e.g., "128").
+
+ProductivityChart.jsx:
+
+Props: commitData.
+
+Calculates commit activity by day of the week and hour of the day.
+
+Displays two charts:
+
+A Bar Chart for "Commits per Day".
+
+A Polar Area or Doughnut Chart for "Commits by Time of Day".
+
+LanguageChart.jsx:
+
+Props: languageData.
+
+Displays a Doughnut Chart showing the user's most used languages based on bytes of code across all their public repos.
+
+TopRepos.jsx:
+
+Props: repoData.
+
+Displays a list of the user's top 5 public repositories, sorted by star count.
+
+For each repo, show its name, primary language, star count, and fork count.
+
+API Interaction (Very Important):
+
+Use the public GitHub REST API.
+
+To handle API rate limits, use a GitHub Personal Access Token. Store this token in Replit Secrets with the key VITE_GITHUB_TOKEN. Access it in the code using import.meta.env.VITE_GITHUB_TOKEN.
+
+Create a dedicated API utility file, e.g., /src/api/github.js. This file will export functions to fetch data.
+
+fetchUserData(username): Fetches data from https://api.github.com/users/{username}.
+
+fetchUserRepos(username): Fetches all repositories from https://api.github.com/users/{username}/repos?per_page=100.
+
+Inside this utility, create an axios instance with the base URL and the authorization header: Authorization: 'token ' + import.meta.env.VITE_GITHUB_TOKEN.
+
+Data Processing Logic:
+
+Languages: After fetching all repos, iterate through them. For each repo, fetch its languages data from its languages_url. Aggregate the byte counts for each language across all repos.
+
+Productivity: Fetch the commit history for the user's repositories. For simplicity, you can start by fetching commits for the top 5-10 most recently updated repos. For each commit, extract the date to determine the day of the week and the hour.
+
+Styling and UX:
+
+Use a dark theme with a dark gray or navy blue background.
+
+The main content area should be a single, centered column.
+
+Use skeleton loaders for each card while the main loading state is true to give the user a preview of the layout.
+
+The charts and cards should have a clean, modern look with rounded corners and subtle box shadows.
+
+Use a clear and readable font from Google Fonts (e.g., Inter or Poppins).
