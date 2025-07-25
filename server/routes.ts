@@ -9,8 +9,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const githubApi = axios.create({
     baseURL: 'https://api.github.com',
     headers: {
-      'Authorization': `token ${GITHUB_TOKEN}`,
       'Accept': 'application/vnd.github.v3+json',
+      ...(GITHUB_TOKEN && { 'Authorization': `token ${GITHUB_TOKEN}` }),
     },
   });
 
@@ -23,15 +23,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Username is required" });
       }
 
-      // Fetch user data
-      const userResponse = await githubApi.get(`/users/${username}`);
-      const user = githubUserSchema.parse(userResponse.data);
+      let user, repos;
 
-      // Fetch repositories
-      const reposResponse = await githubApi.get(`/users/${username}/repos`, {
-        params: { per_page: 100, sort: 'updated' }
-      });
-      const repos = reposResponse.data.map((repo: any) => githubRepoSchema.parse(repo));
+      if (GITHUB_TOKEN) {
+        // Fetch real data with token
+        const userResponse = await githubApi.get(`/users/${username}`);
+        user = githubUserSchema.parse(userResponse.data);
+
+        const reposResponse = await githubApi.get(`/users/${username}/repos`, {
+          params: { per_page: 100, sort: 'updated' }
+        });
+        repos = reposResponse.data.map((repo: any) => githubRepoSchema.parse(repo));
+      } else {
+        // Without token, we need proper authentication to access GitHub API
+        throw new Error("GitHub token required for API access");
+      }
 
       // Calculate stats
       const totalStars = repos.reduce((sum: number, repo: any) => sum + repo.stargazers_count, 0);
@@ -42,10 +48,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .sort((a: any, b: any) => b.stargazers_count - a.stargazers_count)
         .slice(0, 5);
 
-      // Fetch language data for all repos
+      // Fetch language data for a limited number of repos to avoid rate limits
       const languageStats = new Map<string, number>();
+      const reposToProcess = repos.slice(0, GITHUB_TOKEN ? 20 : 5); // Fewer repos without token
       
-      for (const repo of repos.slice(0, 20)) { // Limit to first 20 repos to avoid rate limits
+      for (const repo of reposToProcess) {
         if (repo.languages_url) {
           try {
             const langResponse = await githubApi.get(repo.languages_url.replace('https://api.github.com', ''));
@@ -62,7 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Calculate language percentages
       const totalBytes = Array.from(languageStats.values()).reduce((sum, bytes) => sum + bytes, 0);
-      const languages = Array.from(languageStats.entries())
+      let languages = Array.from(languageStats.entries())
         .map(([name, bytes]) => ({
           name,
           bytes,
@@ -70,6 +77,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }))
         .sort((a, b) => b.bytes - a.bytes)
         .slice(0, 8);
+
+      // If no language data was fetched, create basic stats from repo languages
+      if (languages.length === 0) {
+        const repoLanguages = repos
+          .filter((repo: any) => repo.language)
+          .map((repo: any) => repo.language as string);
+        
+        const langCounts = new Map<string, number>();
+        repoLanguages.forEach((lang: string) => {
+          langCounts.set(lang, (langCounts.get(lang) || 0) + 1);
+        });
+
+        const totalRepos = repoLanguages.length;
+        languages = Array.from(langCounts.entries())
+          .map(([name, count]) => ({
+            name,
+            bytes: count * 1000, // Mock bytes for display
+            percentage: Math.round((count / totalRepos) * 100 * 10) / 10,
+          }))
+          .sort((a, b) => b.bytes - a.bytes)
+          .slice(0, 8);
+      }
 
       // Generate mock commit activity data (GitHub API for commits requires more complex logic)
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -105,12 +134,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('GitHub API Error:', error.message);
       
+      if (error.message === "GitHub token required for API access") {
+        return res.status(401).json({ 
+          error: "GitHub token required. Please add your GitHub Personal Access Token to fetch real data." 
+        });
+      }
+      
       if (error.response?.status === 404) {
         return res.status(404).json({ error: "GitHub user not found" });
       }
       
-      if (error.response?.status === 403) {
-        return res.status(429).json({ error: "API rate limit exceeded. Please try again later." });
+      if (error.response?.status === 403 || error.response?.status === 401) {
+        return res.status(401).json({ 
+          error: "GitHub token required. Please add your GitHub Personal Access Token to access the API." 
+        });
       }
       
       res.status(500).json({ error: "Failed to fetch GitHub data" });
