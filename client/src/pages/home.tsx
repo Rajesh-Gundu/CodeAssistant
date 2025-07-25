@@ -56,29 +56,75 @@ export default function Home() {
 
         {showError && (
           <div className="text-center space-y-6">
-            <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-6">
-              <div className="text-red-400 text-4xl mb-4">🔑</div>
-              <h3 className="text-xl font-semibold text-github-text mb-2">GitHub Token Required</h3>
-              <p className="text-github-text-secondary mb-4">
-                To fetch your GitHub data and create your story, you need to provide a GitHub Personal Access Token. 
-                This ensures we can access the GitHub API properly.
-              </p>
-              <div className="text-sm text-github-text-secondary mb-6 text-left max-w-md mx-auto">
-                <p className="font-medium mb-2">How to get your token:</p>
-                <ol className="list-decimal list-inside space-y-1">
-                  <li>Go to GitHub.com → Settings</li>
-                  <li>Developer settings → Personal access tokens</li>
-                  <li>Generate new token (classic)</li>
-                  <li>Select "public_repo" scope</li>
-                  <li>Copy the token and provide it when asked</li>
-                </ol>
+            {/* User Not Found Error */}
+            {error?.message?.includes('GitHub user not found') && (
+              <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-6">
+                <div className="text-red-400 text-4xl mb-4">👤</div>
+                <h3 className="text-xl font-semibold text-github-text mb-2">User Not Found</h3>
+                <p className="text-github-text-secondary mb-4">
+                  The GitHub username "{username}" doesn't exist or might be private.
+                </p>
+                <div className="text-sm text-github-text-secondary mb-6">
+                  <p className="font-medium mb-2">Please check:</p>
+                  <ul className="list-disc list-inside space-y-1 text-left max-w-md mx-auto">
+                    <li>The username is spelled correctly</li>
+                    <li>The user has a public GitHub profile</li>
+                    <li>The account hasn't been deleted or suspended</li>
+                  </ul>
+                </div>
+                <div className="space-x-4">
+                  <Button onClick={handleReset} className="bg-github-green hover:bg-green-600">
+                    Try Another Username
+                  </Button>
+                </div>
               </div>
-              <div className="space-x-4">
-                <Button onClick={handleReset} className="bg-github-green hover:bg-green-600">
-                  Start Over
-                </Button>
+            )}
+
+            {/* Token Required Error */}
+            {error?.message?.includes('token required') && (
+              <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-6">
+                <div className="text-red-400 text-4xl mb-4">🔑</div>
+                <h3 className="text-xl font-semibold text-github-text mb-2">GitHub Token Required</h3>
+                <p className="text-github-text-secondary mb-4">
+                  To fetch your GitHub data and create your story, you need to provide a GitHub Personal Access Token. 
+                  This ensures we can access the GitHub API properly.
+                </p>
+                <div className="text-sm text-github-text-secondary mb-6 text-left max-w-md mx-auto">
+                  <p className="font-medium mb-2">How to get your token:</p>
+                  <ol className="list-decimal list-inside space-y-1">
+                    <li>Go to GitHub.com → Settings</li>
+                    <li>Developer settings → Personal access tokens</li>
+                    <li>Generate new token (classic)</li>
+                    <li>Select "public_repo" scope</li>
+                    <li>Copy the token and provide it when asked</li>
+                  </ol>
+                </div>
+                <div className="space-x-4">
+                  <Button onClick={handleReset} className="bg-github-green hover:bg-green-600">
+                    Start Over
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Generic Error */}
+            {!error?.message?.includes('GitHub user not found') && !error?.message?.includes('token required') && (
+              <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-6">
+                <div className="text-red-400 text-4xl mb-4">⚠️</div>
+                <h3 className="text-xl font-semibold text-github-text mb-2">Something Went Wrong</h3>
+                <p className="text-github-text-secondary mb-4">
+                  We encountered an error while fetching the GitHub data.
+                </p>
+                <p className="text-sm text-github-text-secondary mb-6">
+                  {error?.message || 'Unknown error occurred'}
+                </p>
+                <div className="space-x-4">
+                  <Button onClick={handleReset} className="bg-github-green hover:bg-green-600">
+                    Try Again
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
