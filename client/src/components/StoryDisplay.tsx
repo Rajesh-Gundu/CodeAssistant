@@ -4,17 +4,43 @@ import ProductivityChart from "./ProductivityChart";
 import LanguageChart from "./LanguageChart";
 import TopRepos from "./TopRepos";
 import { Button } from "@/components/ui/button";
-import { Download, Twitter } from "lucide-react";
+import { Download, Twitter, Home, ArrowLeft } from "lucide-react";
+import { useRef, useState } from "react";
+import html2canvas from "html2canvas";
 import type { GitHubStory } from "@shared/schema";
 
 interface StoryDisplayProps {
   story: GitHubStory;
+  onReset?: () => void;
 }
 
-export default function StoryDisplay({ story }: StoryDisplayProps) {
-  const handleDownload = () => {
-    // TODO: Implement image generation functionality
-    console.log("Download functionality to be implemented");
+export default function StoryDisplay({ story, onReset }: StoryDisplayProps) {
+  const storyRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    if (!storyRef.current) return;
+    
+    setIsDownloading(true);
+    try {
+      const canvas = await html2canvas(storyRef.current, {
+        backgroundColor: '#0d1117', // GitHub dark background
+        scale: 2, // Higher quality
+        useCORS: true,
+        allowTaint: true,
+        width: storyRef.current.scrollWidth,
+        height: storyRef.current.scrollHeight,
+      });
+      
+      const link = document.createElement('a');
+      link.download = `${story.user.login}-github-story.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    } catch (error) {
+      console.error('Error generating image:', error);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const handleShare = () => {
@@ -26,8 +52,32 @@ export default function StoryDisplay({ story }: StoryDisplayProps) {
 
   return (
     <div className="space-y-8">
-      {/* User Profile */}
-      <UserProfile user={story.user} />
+      {/* Navigation Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-github-border">
+        <div>
+          <h2 className="text-2xl font-bold text-github-text">
+            {story.user.name || story.user.login}'s GitHub Story
+          </h2>
+          <p className="text-github-text-secondary">
+            Generated on {new Date().toLocaleDateString()}
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <Button 
+            onClick={onReset}
+            variant="outline"
+            className="border-github-border hover:bg-github-secondary text-github-text"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            New Story
+          </Button>
+        </div>
+      </div>
+
+      {/* Story Content */}
+      <div ref={storyRef} className="space-y-8">
+        {/* User Profile */}
+        <UserProfile user={story.user} />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -69,15 +119,20 @@ export default function StoryDisplay({ story }: StoryDisplayProps) {
           Love your GitHub story? Share it with the world!
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button onClick={handleDownload} className="bg-github-green hover:bg-green-600">
+          <Button 
+            onClick={handleDownload} 
+            disabled={isDownloading}
+            className="bg-github-green hover:bg-green-600 disabled:opacity-50"
+          >
             <Download className="w-4 h-4 mr-2" />
-            Download as Image
+            {isDownloading ? 'Generating...' : 'Download as Image'}
           </Button>
           <Button onClick={handleShare} className="bg-blue-600 hover:bg-blue-700">
             <Twitter className="w-4 h-4 mr-2" />
             Share on Twitter
           </Button>
         </div>
+      </div>
       </div>
     </div>
   );

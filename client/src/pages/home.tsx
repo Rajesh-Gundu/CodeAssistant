@@ -52,7 +52,7 @@ export default function Home() {
 
         {showLoading && <LoadingSkeleton />}
 
-        {showStory && <StoryDisplay story={githubStory} />}
+        {showStory && <StoryDisplay story={githubStory} onReset={handleReset} />}
 
         {showError && (
           <div className="text-center space-y-6">
